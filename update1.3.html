@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goldify ✨</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #000, #111);
+    color: #f9d64a;
+    text-align: center;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Logo Animation */
+  .logo {
+    font-size: 36px;
+    font-weight: 700;
+    color: #f5c518;
+    letter-spacing: 1px;
+    text-shadow: 0 0 15px #f5c518;
+    opacity: 0;
+    animation: fadeInLogo 2s ease forwards;
+  }
+
+  @keyframes fadeInLogo {
+    0% {opacity: 0; transform: scale(0.8);}
+    100% {opacity: 1; transform: scale(1);}
+  }
+
+  .container {
+    background: rgba(255, 215, 0, 0.07);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+    display: inline-block;
+    width: 90%;
+    max-width: 400px;
+    margin-top: 30px;
+    animation: fadeUp 1.5s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    0% {opacity: 0; transform: translateY(40px);}
+    100% {opacity: 1; transform: translateY(0);}
+  }
+
+  select, input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 2px solid #f5c518;
+    border-radius: 10px;
+    background: #000;
+    color: #f9d64a;
+    font-size: 16px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #f5c518;
+    border: none;
+    border-radius: 10px;
+    color: black;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #ffdd44;
+    transform: scale(1.05);
+  }
+
+  .result {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    opacity: 0;
+    text-shadow: 0 0 10px #f5c518;
+    animation: fadeInResult 1s ease forwards;
+  }
+
+  @keyframes fadeInResult {
+    0% {opacity: 0; transform: scale(0.9);}
+    100% {opacity: 1; transform: scale(1);}
+  }
+</style>
+</head>
+<body>
+
+  <div class="logo">💎 Goldify ✨</div>
+
+  <div class="container">
+    <select id="metal">
+      <option value="XAU">Gold</option>
+      <option value="XAG">Silver</option>
+      <option value="OIL">Brent Oil</option>
+    </select>
+
+    <select id="unit">
+      <option value="gram">Per Gram</option>
+      <option value="tola">Per Tola</option>
+      <option value="kg">Per Kg</option>
+    </select>
+
+    <input type="number" id="amount" placeholder="Enter Amount" />
+
+    <button onclick="getRate()">Check Rate</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <!-- Soft Tingg Sound -->
+  <audio id="tingSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3" type="audio/mpeg">
+  </audio>
+
+<script>
+async function getRate() {
+  const metal = document.getElementById('metal').value;
+  const unit = document.getElementById('unit').value;
+  const amount = parseFloat(document.getElementById('amount').value) || 1;
+  const resultDiv = document.getElementById('result');
+  const ting = document.getElementById('tingSound');
+  resultDiv.style.opacity = 0;
+  resultDiv.innerHTML = "Fetching live rate...⏳";
+
+  try {
+    const apiKey = "goldapi-akhgqz19mgff1ihg-io";
+
+    // Step 1: Live USD → PKR rate
+    const currencyResponse = await fetch("https://open.er-api.com/v6/latest/USD");
+    const currencyData = await currencyResponse.json();
+    const usdToPkr = currencyData.rates.PKR;
+
+    // Step 2: Fetch metal or oil price in USD
+    let url = `https://www.goldapi.io/api/${metal}/USD`;
+    const response = await fetch(url, {
+      headers: { "x-access-token": apiKey, "Content-Type": "application/json" }
+    });
+    const data = await response.json();
+    if (!data.price) throw new Error("No data found");
+
+    let usdRate = data.price; // per ounce in USD
+    let pkrRate = usdRate * usdToPkr; // convert to PKR
+
+    // Step 3: Convert ounce → grams/tola/kg
+    let perGram = pkrRate / 31.1035;
+    let rate;
+    if (unit === "gram") rate = perGram;
+    else if (unit === "tola") rate = perGram * 11.664;
+    else if (unit === "kg") rate = perGram * 1000;
+
+    let total = rate * amount;
+
+    // Step 4: Play soft sound + animated result
+    ting.play();
+    resultDiv.style.animation = "fadeInResult 1s ease forwards";
+    resultDiv.innerHTML = `💎 ${amount} ${unit} of ${
+      metal === 'XAU' ? 'Gold' : metal === 'XAG' ? 'Silver' : 'Brent Oil'
+    } = <br><br><span style="font-size:24px;color:#f5c518;">${total.toLocaleString()} PKR</span>`;
+
+  } catch (error) {
+    resultDiv.innerHTML = "⚠️ Error fetching live data. Try again.";
+  }
+}
+</script>
+
+</body>
+</html>
